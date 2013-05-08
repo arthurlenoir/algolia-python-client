@@ -1,6 +1,8 @@
 import json
 import urllib
-from httplib import HTTPSConnection
+import urllib3
+
+POOL_MANAGER = urllib3.PoolManager()
 
 class Client:
     def __init__(self, host, app_id, api_key, batch_size=1000):
@@ -14,18 +16,16 @@ class Client:
             'X-Algolia-API-Key': self.api_key,
             'X-Algolia-Application-Id': self.app_id,
         }
-        self.connection = HTTPSConnection(self.host)
 
     def execute_request(self, request, method='GET', body=None, retry=0):
         if retry < 3:
             try:
-                self.connection.request(method, request, body, self.headers)
-                response = self.connection.getresponse().read()
+                conn = POOL_MANAGER.connection_from_host(self.host, scheme='https')
+                response = conn.urlopen(method, request, headers=self.headers, body=body).data
             except Exception, e:
-                self.connection = HTTPSConnection(self.host)
                 return self.execute_request(request, method, body, retry+1)
             return json.loads(response)
-        return { "message": "An unexpected error occured" }
+        return {"message": "An unexpected error occured"}
 
     def start_batch(self, index_name):
         if index_name not in self.requests:
