@@ -7,7 +7,6 @@ class Client:
         self.host = host
         self.app_id = app_id
         self.api_key = api_key
-        self.batch = False
         self.batch_size = batch_size
         self.requests = {}
         self.opener = urllib2.build_opener(urllib2.HTTPHandler)
@@ -26,18 +25,19 @@ class Client:
             return json.loads(e.read())
 
     def start_batch(self, index_name):
-        self.batch = True
-        self.requests[index_name] = []
+        if index_name not in self.requests:
+            self.requests[index_name] = []
 
     def end_batch(self, index_name):
-        if len(self.requests[index_name]) > 0:
-            data = json.dumps({'requests': self.requests[index_name]})
-            request = urllib2.Request("https://%s/1/indexes/%s/batch" % (self.host, index_name), data=data)
-            response = self.execute_request(request, 'POST')
-            
-            self.batch = False
-            self.requests[index_name] = []
-            return response
+        response = None
+        if index_name in self.requests:
+            requests = self.requests[index_name]
+            if len(requests) > 0:
+                data = json.dumps({'requests': requests})
+                request = urllib2.Request("https://%s/1/indexes/%s/batch" % (self.host, index_name), data=data)
+                response = self.execute_request(request, 'POST')
+            del self.requests[index_name]
+        return response
 
     # Lists your indexes. Returns also a pendingTask flag per index that indicates if it has remaining task(s) running.
     def get_index(self, index_name):
@@ -65,13 +65,14 @@ class Client:
 
     # Add or replace an object (if the object does not exist, it will be created)
     def add(self, index_name, object_id, obj):
-        if self.batch:
-            self.requests[index_name].append({
+        if index_name in self.requests:
+            requests = self.requests[index_name]
+            requests.append({
                 "method": 'PUT', 
                 "path": "/1/indexes/%s/%s" % (index_name, object_id),
                 "body": obj,
                 })
-            if len(self.requests[index_name]) >= self.batch_size:
+            if len(requests) >= self.batch_size:
                 self.end_batch(index_name)
                 self.start_batch(index_name)
         else:
@@ -81,13 +82,14 @@ class Client:
 
     # Updates part of an object (if the object does not exist, it will be created)
     def update(self, index_name, object_id, obj):
-        if self.batch:
-            self.requests[index_name].append({
+        if index_name in self.requests:
+            requests = self.requests[index_name]
+            requests.append({
                 "method": 'POST', 
                 "path": "/1/indexes/%s/%s/partial" % (index_name, object_id),
                 "body": obj,
                 })
-            if len(self.requests[index_name]) >= self.batch_size:
+            if len(requests) >= self.batch_size:
                 self.end_batch(index_name)
                 self.start_batch(index_name)
         else:
