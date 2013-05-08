@@ -1,0 +1,1 @@
+from pyalgolia.client import Client
