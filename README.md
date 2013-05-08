@@ -1,17 +1,17 @@
 Algolia Python Client 
-=========
+=====================
 http://www.algolia.com/features/
 
 About
-=====
+-----
 pyAlgolia is a python client for Algolia Search Cloud. 
 
 Installation
-=====
+------------
 python setup.py install
 
 Examples
-=====
+--------
 ```python
 >>> from pyalgolia import Client
 
@@ -32,7 +32,8 @@ Examples
 
 >>> algolia.search('contact', query='Bi')
 {u'hits': [{u'first_name': u'Bill', u'last_name': u'Clinton', u'_highlightResult': {u'first_name': {u'matchLevel': u'full', u'value': u'<em>Bi</em>ll'}, u'last_name': {u'matchLevel': u'none', u'value': u'Clinton'}}, u'objectID': u'2'}], u'processingTimeMS': 1, u'nbHits': 1, u'hitsPerPage': 20, u'params': u'query=Bi', u'nbPages': 1, u'query': u'Bi', u'page': 0}
+```
 
 API Specification
-=====
+-----------------
 http://docs.algoliav1.apiary.io/
