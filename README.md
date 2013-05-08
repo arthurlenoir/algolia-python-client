@@ -8,7 +8,8 @@ pyAlgolia is a python client for Algolia Search Cloud.
 
 Installation
 ------------
-python setup.py install
+with pip: pip install https://github.com/arthurlenoir/algolia-python-client/zipball/master
+with the source: python setup.py install
 
 Examples
 --------
