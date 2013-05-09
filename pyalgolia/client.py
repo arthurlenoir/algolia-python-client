@@ -100,3 +100,8 @@ class Client:
     # Changes index settings.
     def settings(self, index_name, **args):
         return self.execute_request("/1/indexes/%s/settings" % (index_name), 'PUT', json.dumps(args))
+
+    # Add a new key
+    def add_key(self, acl):
+        return self.execute_request("/1/keys", 'POST', json.dumps({'acl': acl}))
+
