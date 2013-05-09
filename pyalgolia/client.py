@@ -21,11 +21,11 @@ class Client:
         if retry < 3:
             try:
                 conn = POOL_MANAGER.connection_from_host(self.host, scheme='https')
-                response = conn.urlopen(method, request, headers=self.headers, body=body).data
+                response = conn.urlopen(method, request, headers=self.headers, body=body)
             except Exception, e:
                 return self.execute_request(request, method, body, retry+1)
-            return json.loads(response)
-        return {"message": "An unexpected error occured"}
+            return json.loads(response.data), response.status
+        return {"message": "An unexpected error occured"}, 0
 
     def start_batch(self, index_name):
         if index_name not in self.requests:
@@ -43,15 +43,18 @@ class Client:
 
     # Lists your indexes. Returns also a pendingTask flag per index that indicates if it has remaining task(s) running.
     def get_index(self, index_name):
-        return self.execute_request("/1/indexes/%s" % index_name, 'GET')
+        obj, status = self.execute_request("/1/indexes/%s" % index_name, 'GET')
+        if status == 200:
+            return obj
+        return None
 
     # delete an existing index
     def delete_index(self, index_name):
-        return self.execute_request("/1/indexes/%s" % index_name, 'DELETE')
+        return self.execute_request("/1/indexes/%s" % index_name, 'DELETE')[0]
 
     # Queries the index. If no query parameter is set, retrieves all objects.
     def search(self, index_name, **args):
-        return self.execute_request("/1/indexes/%s?%s" % (index_name, urllib.urlencode(args)))
+        return self.execute_request("/1/indexes/%s?%s" % (index_name, urllib.urlencode(args)))[0]
 
     # Get one object in the index.
     def get(self, index_name, object_id, attributes=None):
@@ -59,7 +62,10 @@ class Client:
             attributes = "?attributes=" + urllib.quote_plus(attributes)
         else:
             attributes = ""
-        return self.execute_request("/1/indexes/%s/%s%s" % (index_name, object_id, attributes))
+        obj, status = self.execute_request("/1/indexes/%s/%s%s" % (index_name, object_id, attributes))
+        if status == 200:
+            return obj
+        return None
 
     # Add or replace an object (if the object does not exist, it will be created)
     def add(self, index_name, object_id, obj):
@@ -75,7 +81,7 @@ class Client:
                 self.start_batch(index_name)
         else:
             obj = json.dumps(obj)
-            return self.execute_request("/1/indexes/%s/%s" % (index_name, object_id), 'PUT', obj)
+            return self.execute_request("/1/indexes/%s/%s" % (index_name, object_id), 'PUT', obj)[0]
 
     # Updates part of an object (if the object does not exist, it will be created)
     def update(self, index_name, object_id, obj):
@@ -91,17 +97,17 @@ class Client:
                 self.start_batch(index_name)
         else:
             obj = json.dumps(obj)
-            return self.execute_request("/1/indexes/%s/%s/partial" % (index_name, object_id), 'POST', obj)
+            return self.execute_request("/1/indexes/%s/%s/partial" % (index_name, object_id), 'POST', obj)[0]
 
     # delete an existing object from an index
     def delete(self, index_name, object_id):
-        return self.execute_request("/1/indexes/%s/%s" % (index_name, object_id), 'DELETE')
+        return self.execute_request("/1/indexes/%s/%s" % (index_name, object_id), 'DELETE')[0]
 
     # Changes index settings.
     def settings(self, index_name, **args):
-        return self.execute_request("/1/indexes/%s/settings" % (index_name), 'PUT', json.dumps(args))
+        return self.execute_request("/1/indexes/%s/settings" % (index_name), 'PUT', json.dumps(args))[0]
 
     # Add a new key
     def add_key(self, acl):
-        return self.execute_request("/1/keys", 'POST', json.dumps({'acl': acl}))
+        return self.execute_request("/1/keys", 'POST', json.dumps({'acl': acl}))[0]
 
